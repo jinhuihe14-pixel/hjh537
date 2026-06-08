@@ -1,13 +1,12 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useGameStore } from '../../store/useGameStore';
-import { networkManager } from '../../game/network/NetworkManager';
 import { X, Home, Hammer, Sprout, Users, ThumbsUp, Clock, Coins, Package, ChevronRight, MapPin, Trophy, History, Trash2 } from 'lucide-react';
 import { BUILDINGS, CROPS, ITEMS } from '../../data/gameData';
-import { BuildingConfig, PlacedBuilding, PlotData, CropData, VisitRecord, RankEntry } from '../../types/game';
+import { BuildingConfig, PlacedBuilding, PlotData, CropData, VisitRecord, RankEntry, HomelandData } from '../../types/game';
 
 const HomelandPanel: React.FC = () => {
-  const { showHomeland, toggleHomeland, homeland, setHomeland, buildingConfigs, setBuildingConfigs, currentPlayer, inventory, setInventory } = useGameStore();
+  const { showHomeland, toggleHomeland, homeland, setHomeland, buildingConfigs, setBuildingConfigs, currentPlayer, inventory, setInventory, addItem, removeItem, addGold } = useGameStore();
   const [activeTab, setActiveTab] = useState<'build' | 'plant' | 'visit' | 'ranking' | 'records'>('build');
   const [selectedPlot, setSelectedPlot] = useState<number | null>(null);
   const [showBuildingList, setShowBuildingList] = useState(false);
@@ -16,6 +15,7 @@ const HomelandPanel: React.FC = () => {
   const [rankingList, setRankingList] = useState<RankEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+  const hasLoadedRef = React.useRef(false);
 
   const buildingList = useMemo(() => Object.values(BUILDINGS), []);
   const cropList = useMemo(() => Object.values(CROPS), []);
@@ -25,31 +25,101 @@ const HomelandPanel: React.FC = () => {
     setTimeout(() => setMessage(null), 3000);
   }, []);
 
-  const loadHomelandData = useCallback(async () => {
-    try {
-      setLoading(true);
-      const [homelandData, configs, crops, inventoryData] = await Promise.all([
-        networkManager.getHomeland(),
-        networkManager.getBuildingConfigs(),
-        networkManager.getCropConfigs(),
-        networkManager.getInventory(),
-      ]);
-      setHomeland(homelandData);
-      setBuildingConfigs(configs);
-      setCropConfigs(crops);
-      setInventory(inventoryData.inventory);
-    } catch (err: any) {
-      showMessage(err.message || '加载失败', 'error');
-    } finally {
-      setLoading(false);
+  const generateMockHomeland = useCallback((): HomelandData => {
+    const state = useGameStore.getState();
+    const player = state.currentPlayer;
+    
+    const plots: PlotData[] = [];
+    for (let i = 0; i < 9; i++) {
+      plots.push({
+        id: i,
+        unlocked: i < 4,
+        unlockCost: { gold: (i + 1) * 500 },
+        building: null,
+        crop: null,
+      });
     }
-  }, [setHomeland, setBuildingConfigs, setInventory, showMessage]);
+    
+    const houseBuilding: PlacedBuilding = {
+      instanceId: 'bld_001',
+      buildingId: 5001,
+      name: '小木屋',
+      icon: '🏠',
+      position: { x: 0, y: 0 },
+      level: 1,
+      buildStartTime: Date.now() - 60000,
+      buildEndTime: Date.now(),
+      isBuilt: true,
+      remainingBuildTime: 0,
+      lastCollectTime: Date.now() - 300000,
+      readyToCollect: 10,
+    };
+    plots[0].building = houseBuilding;
+    
+    const farmBuilding: PlacedBuilding = {
+      instanceId: 'bld_002',
+      buildingId: 5101,
+      name: '药草园',
+      icon: '🌱',
+      position: { x: 1, y: 0 },
+      level: 1,
+      buildStartTime: Date.now() - 120000,
+      buildEndTime: Date.now(),
+      isBuilt: true,
+      remainingBuildTime: 0,
+      lastCollectTime: Date.now() - 200000,
+      readyToCollect: 5,
+    };
+    plots[1].building = farmBuilding;
+
+    return {
+      id: 'homeland_001',
+      ownerId: player?.id || 'player_001',
+      ownerName: player?.name || '冒险者',
+      level: 2,
+      exp: 150,
+      plots,
+      buildings: [houseBuilding, farmBuilding],
+      crops: [],
+      decorationSlots: [],
+      likes: 28,
+      visitors: [],
+      lastVisitTime: {},
+      totalVisits: 56,
+    };
+  }, []);
 
   useEffect(() => {
-    if (showHomeland) {
-      loadHomelandData();
+    if (!showHomeland) {
+      hasLoadedRef.current = false;
+      return;
     }
-  }, [showHomeland, loadHomelandData]);
+    
+    if (hasLoadedRef.current) return;
+    
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
+        const state = useGameStore.getState();
+        if (!state.homeland) {
+          const mockHomeland = generateMockHomeland();
+          setHomeland(mockHomeland);
+        }
+        
+        setBuildingConfigs(Object.values(BUILDINGS));
+        setCropConfigs(Object.values(CROPS));
+        hasLoadedRef.current = true;
+      } catch (err: any) {
+        showMessage(err.message || '加载失败', 'error');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    loadData();
+  }, [showHomeland, generateMockHomeland, setHomeland, setBuildingConfigs, showMessage]);
 
   useEffect(() => {
     if (!homeland || homeland.level === undefined) return;
@@ -95,114 +165,213 @@ const HomelandPanel: React.FC = () => {
     return `${Math.floor(seconds / 3600)}小时${Math.floor((seconds % 3600) / 60)}分钟`;
   };
 
-  const handleUnlockPlot = async (plotId: number) => {
-    try {
-      await networkManager.unlockPlot(String(plotId));
-      showMessage('地块解锁成功!', 'success');
-      loadHomelandData();
-    } catch (err: any) {
-      showMessage(err.message || '解锁失败', 'error');
+  const handleUnlockPlot = (plotId: number) => {
+    if (!homeland) return;
+    const plot = homeland.plots.find(p => p.id === plotId);
+    if (!plot || plot.unlocked) return;
+    
+    const cost = plot.unlockCost?.gold || 500;
+    if (currentPlayer && currentPlayer.gold < cost) {
+      showMessage('金币不足!', 'error');
+      return;
     }
+    
+    addGold(-cost);
+    setHomeland((prev: any) => {
+      if (!prev) return prev;
+      const updatedPlots = prev.plots.map((p: PlotData) =>
+        p.id === plotId ? { ...p, unlocked: true } : p
+      );
+      return { ...prev, plots: updatedPlots };
+    });
+    showMessage('地块解锁成功!', 'success');
   };
 
-  const handleBuild = async (plotId: number, buildingId: number) => {
-    try {
-      await networkManager.buildBuilding(String(plotId), String(buildingId));
-      showMessage('开始建造!', 'success');
-      setShowBuildingList(false);
-      setSelectedPlot(null);
-      loadHomelandData();
-    } catch (err: any) {
-      showMessage(err.message || '建造失败', 'error');
+  const handleBuild = (plotId: number, buildingId: number) => {
+    if (!homeland || !currentPlayer) return;
+    
+    const config = BUILDINGS[buildingId];
+    if (!config) return;
+    
+    if (currentPlayer.gold < config.goldCost) {
+      showMessage('金币不足!', 'error');
+      return;
     }
+    
+    for (const mat of config.materials) {
+      const slot = inventory.find(s => s && s.itemId === mat.itemId);
+      if (!slot || slot.quantity < mat.quantity) {
+        showMessage('材料不足!', 'error');
+        return;
+      }
+    }
+    
+    addGold(-config.goldCost);
+    for (const mat of config.materials) {
+      removeItem(mat.itemId, mat.quantity);
+    }
+    
+    const newBuilding: PlacedBuilding = {
+      instanceId: `bld_${Date.now()}`,
+      buildingId: config.id,
+      name: config.name,
+      icon: config.icon,
+      position: { x: plotId % 3, y: Math.floor(plotId / 3) },
+      level: 1,
+      buildStartTime: Date.now(),
+      buildEndTime: Date.now() + config.buildTime * 1000,
+      isBuilt: false,
+      remainingBuildTime: config.buildTime,
+      lastCollectTime: Date.now(),
+      readyToCollect: 0,
+    };
+    
+    setHomeland((prev: any) => {
+      if (!prev) return prev;
+      const updatedPlots = prev.plots.map((p: PlotData) =>
+        p.id === plotId ? { ...p, building: newBuilding } : p
+      );
+      return { ...prev, plots: updatedPlots, buildings: [...prev.buildings, newBuilding] };
+    });
+    
+    showMessage('开始建造!', 'success');
+    setShowBuildingList(false);
+    setSelectedPlot(null);
   };
 
-  const handleCollect = async (plotId: number) => {
-    try {
-      await networkManager.collectProduction(String(plotId));
-      showMessage('收取成功!', 'success');
-      loadHomelandData();
-    } catch (err: any) {
-      showMessage(err.message || '收取失败', 'error');
+  const handleCollect = (plotId: number) => {
+    if (!homeland) return;
+    
+    const plot = homeland.plots.find(p => p.id === plotId);
+    if (!plot || !plot.building || plot.building.readyToCollect <= 0) return;
+    
+    const buildingConfig = BUILDINGS[plot.building.buildingId];
+    const productionItem = buildingConfig?.production?.itemId;
+    const amount = plot.building.readyToCollect;
+    
+    if (productionItem) {
+      addItem(productionItem, amount);
     }
+    
+    setHomeland((prev: any) => {
+      if (!prev) return prev;
+      const updatedPlots = prev.plots.map((p: PlotData) => {
+        if (p.id === plotId && p.building) {
+          return {
+            ...p,
+            building: {
+              ...p.building,
+              readyToCollect: 0,
+              lastCollectTime: Date.now(),
+            },
+          };
+        }
+        return p;
+      });
+      return { ...prev, plots: updatedPlots };
+    });
+    
+    showMessage(`收取成功! +${amount}`, 'success');
   };
 
-  const handleCollectAll = async () => {
-    try {
-      await networkManager.collectAllProduction();
-      showMessage('一键收取成功!', 'success');
-      loadHomelandData();
-    } catch (err: any) {
-      showMessage(err.message || '收取失败', 'error');
-    }
+  const handleCollectAll = () => {
+    if (!homeland) return;
+    
+    let totalCollected = 0;
+    
+    setHomeland((prev: any) => {
+      if (!prev) return prev;
+      const updatedPlots = prev.plots.map((p: PlotData) => {
+        if (p.building && p.building.readyToCollect > 0) {
+          const buildingConfig = BUILDINGS[p.building.buildingId];
+          const productionItem = buildingConfig?.production?.itemId;
+          const amount = p.building.readyToCollect;
+          
+          if (productionItem) {
+            addItem(productionItem, amount);
+            totalCollected += amount;
+          }
+          
+          return {
+            ...p,
+            building: {
+              ...p.building,
+              readyToCollect: 0,
+              lastCollectTime: Date.now(),
+            },
+          };
+        }
+        return p;
+      });
+      return { ...prev, plots: updatedPlots };
+    });
+    
+    showMessage(`一键收取成功! 共获得 ${totalCollected} 个物品`, 'success');
   };
 
-  const handlePlant = async (plotId: string, cropId: number) => {
-    try {
-      await networkManager.plantCrop(plotId, cropId);
-      showMessage('种植成功!', 'success');
-      loadHomelandData();
-    } catch (err: any) {
-      showMessage(err.message || '种植失败', 'error');
-    }
+  const handlePlant = (plotId: string, cropId: number) => {
+    showMessage('种植功能开发中...', 'success');
   };
 
-  const handleHarvest = async (plotId: number) => {
-    try {
-      const reward = await networkManager.harvestCrop(String(plotId));
-      showMessage(`收获成功! +${reward?.quantity || 0}`, 'success');
-      loadHomelandData();
-    } catch (err: any) {
-      showMessage(err.message || '收获失败', 'error');
-    }
+  const handleHarvest = (plotId: number) => {
+    showMessage('收获功能开发中...', 'success');
   };
 
-  const handleRemoveBuilding = async (plotId: number) => {
+  const handleRemoveBuilding = (plotId: number) => {
     if (!window.confirm('确定要移除这个建筑吗？会返还部分材料。')) return;
-    try {
-      const refund = await networkManager.removeBuilding(String(plotId));
-      showMessage('建筑已移除', 'success');
-      loadHomelandData();
-    } catch (err: any) {
-      showMessage(err.message || '移除失败', 'error');
+    if (!homeland) return;
+    
+    const plot = homeland.plots.find(p => p.id === plotId);
+    if (!plot || !plot.building) return;
+    
+    const config = BUILDINGS[plot.building.buildingId];
+    if (config) {
+      addGold(Math.floor(config.goldCost * 0.5));
+      for (const mat of config.materials) {
+        addItem(mat.itemId, Math.floor(mat.quantity * 0.5));
+      }
     }
+    
+    setHomeland((prev: any) => {
+      if (!prev) return prev;
+      const updatedPlots = prev.plots.map((p: PlotData) =>
+        p.id === plotId ? { ...p, building: null } : p
+      );
+      const updatedBuildings = prev.buildings.filter(
+        (b: PlacedBuilding) => b.instanceId !== plot.building?.instanceId
+      );
+      return { ...prev, plots: updatedPlots, buildings: updatedBuildings };
+    });
+    
+    showMessage('建筑已移除，返还50%材料', 'success');
   };
 
-  const handleVisit = async (playerId: string) => {
-    try {
-      const homelandData = await networkManager.visitHomeland(playerId);
-      showMessage('拜访成功!', 'success');
-      loadVisitRecords();
-    } catch (err: any) {
-      showMessage(err.message || '拜访失败', 'error');
-    }
+  const handleVisit = (playerId: string) => {
+    showMessage('拜访功能开发中...', 'success');
   };
 
-  const handleLike = async (homelandId: string) => {
-    try {
-      await networkManager.likeHomeland(homelandId);
-      showMessage('点赞成功!', 'success');
-    } catch (err: any) {
-      showMessage(err.message || '点赞失败', 'error');
-    }
+  const handleLike = (homelandId: string) => {
+    showMessage('点赞功能开发中...', 'success');
   };
 
-  const loadVisitRecords = async () => {
-    try {
-      const records = await networkManager.getVisitRecords();
-      setVisitRecords(records);
-    } catch (err) {
-      console.error('加载拜访记录失败', err);
-    }
+  const loadVisitRecords = () => {
+    const mockRecords: VisitRecord[] = [
+      { visitorId: 'v1', visitorName: '神剑骑士', visitTime: Date.now() - 3600000, liked: true },
+      { visitorId: 'v2', visitorName: '影子猎人', visitTime: Date.now() - 7200000, liked: false },
+      { visitorId: 'v3', visitorName: '魔法学徒', visitTime: Date.now() - 86400000, liked: true },
+    ];
+    setVisitRecords(mockRecords);
   };
 
-  const loadRanking = async (type: string = 'level') => {
-    try {
-      const ranking = await networkManager.getHomelandRanking(type, 20);
-      setRankingList(ranking);
-    } catch (err) {
-      console.error('加载排行榜失败', err);
-    }
+  const loadRanking = (type: string = 'level') => {
+    const mockRanking: RankEntry[] = [
+      { rank: 1, playerId: 'r1', playerName: '天下第一', level: 60, value: 60 },
+      { rank: 2, playerId: 'r2', playerName: '逍遥散人', level: 55, value: 55 },
+      { rank: 3, playerId: 'r3', playerName: '暗夜精灵', level: 52, value: 52 },
+      { rank: 4, playerId: 'r4', playerName: '烈焰战士', level: 48, value: 48 },
+      { rank: 5, playerId: 'r5', playerName: '清风明月', level: 45, value: 45 },
+    ];
+    setRankingList(mockRanking);
   };
 
   const canAfford = (config: BuildingConfig): boolean => {

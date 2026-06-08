@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useGameStore } from '../../store/useGameStore';
 import { X, MapPin, Zap, Lock, Check } from 'lucide-react';
 import { TeleportPoint } from '../../types/game';
@@ -8,6 +8,10 @@ import { TELEPORT_POINTS } from '../../data/gameData';
 const TeleportPanel: React.FC = () => {
   const { showTeleport, toggleTeleport, teleportPoints, setTeleportPoints, currentPlayer } = useGameStore();
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+
+  const displayPoints = useMemo(() => {
+    return teleportPoints.length > 0 ? teleportPoints : TELEPORT_POINTS;
+  }, [teleportPoints]);
 
   useEffect(() => {
     if (showTeleport && teleportPoints.length === 0) {
@@ -23,7 +27,7 @@ const TeleportPanel: React.FC = () => {
     { key: 'homeland', label: '家园', icon: '🏠' },
   ];
 
-  const filteredPoints = teleportPoints.filter(
+  const filteredPoints = displayPoints.filter(
     (p) => selectedCategory === 'all' || p.category === selectedCategory
   );
 
@@ -138,7 +142,7 @@ const TeleportPanel: React.FC = () => {
 
         <div className="p-3 border-t border-gray-700 bg-gray-800/50">
           <div className="text-xs text-gray-400 text-center">
-            已解锁 {teleportPoints.filter((p) => p.unlocked).length} / {teleportPoints.length} 个传送点
+            已解锁 {displayPoints.filter((p) => p.unlocked).length} / {displayPoints.length} 个传送点
           </div>
         </div>
       </div>
