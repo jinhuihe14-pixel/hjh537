@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { useGameStore } from '../../store/useGameStore';
-import { User, Coins, Gem, Heart, Zap, Settings, Package, Users, Scroll, Trophy } from 'lucide-react';
+import { User, Coins, Gem, Heart, Zap, Settings, Package, Users, Scroll, Trophy, Home, MapPin, Mic } from 'lucide-react';
 
 const GameHUD: React.FC = () => {
   const {
@@ -11,11 +11,17 @@ const GameHUD: React.FC = () => {
     showTeam,
     showActivities,
     showSettings,
+    showHomeland,
+    showVoice,
+    showTeleport,
     toggleInventory,
     toggleCharacter,
     toggleTeam,
     toggleActivities,
     toggleSettings,
+    toggleHomeland,
+    toggleVoice,
+    toggleTeleport,
   } = useGameStore();
 
   if (!currentPlayer) return null;
@@ -129,6 +135,42 @@ const GameHUD: React.FC = () => {
           title="活动"
         >
           <Trophy className="w-6 h-6" />
+        </button>
+        
+        <button
+          onClick={toggleHomeland}
+          className={`w-12 h-12 rounded-lg flex items-center justify-center transition-all ${
+            showHomeland
+              ? 'bg-green-600 text-white shadow-lg shadow-green-600/50'
+              : 'bg-black/60 text-gray-300 hover:bg-black/80 hover:text-white border border-gray-600'
+          }`}
+          title="家园"
+        >
+          <Home className="w-6 h-6" />
+        </button>
+        
+        <button
+          onClick={toggleTeleport}
+          className={`w-12 h-12 rounded-lg flex items-center justify-center transition-all ${
+            showTeleport
+              ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/50'
+              : 'bg-black/60 text-gray-300 hover:bg-black/80 hover:text-white border border-gray-600'
+          }`}
+          title="传送"
+        >
+          <MapPin className="w-6 h-6" />
+        </button>
+        
+        <button
+          onClick={toggleVoice}
+          className={`w-12 h-12 rounded-lg flex items-center justify-center transition-all ${
+            showVoice
+              ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/50'
+              : 'bg-black/60 text-gray-300 hover:bg-black/80 hover:text-white border border-gray-600'
+          }`}
+          title="语音"
+        >
+          <Mic className="w-6 h-6" />
         </button>
         
         <button

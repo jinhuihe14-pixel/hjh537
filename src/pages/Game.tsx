@@ -9,6 +9,9 @@ import CharacterPanel from '../components/game/CharacterPanel';
 import AuctionPanel from '../components/game/AuctionPanel';
 import TeamPanel from '../components/game/TeamPanel';
 import ActivitiesPanel from '../components/game/ActivitiesPanel';
+import HomelandPanel from '../components/game/HomelandPanel';
+import VoicePanel from '../components/game/VoicePanel';
+import TeleportPanel from '../components/game/TeleportPanel';
 
 const GamePage: React.FC = () => {
   const { isLoggedIn, isInGame, isLoading, loadingProgress } = useGameStore();
@@ -43,6 +46,9 @@ const GamePage: React.FC = () => {
           <AuctionPanel />
           <TeamPanel />
           <ActivitiesPanel />
+          <HomelandPanel />
+          <VoicePanel />
+          <TeleportPanel />
         </>
       )}
       

@@ -1,15 +1,24 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useGameStore } from '../../store/useGameStore';
-import { X, Search, TrendingUp, Clock, Tag } from 'lucide-react';
-import { AuctionOrder } from '../../types/game';
+import { networkManager } from '../../game/network/NetworkManager';
+import { X, Search, TrendingUp, Clock, Tag, History, Shield, AlertTriangle, CheckCircle } from 'lucide-react';
+import { AuctionOrder, TradeRecord, TradeRiskTag } from '../../types/game';
 import { ITEMS } from '../../data/gameData';
 
 const AuctionPanel: React.FC = () => {
   const { showAuction, toggleAuction, auctionOrders, setAuctionOrders, currentPlayer } = useGameStore();
-  const [activeTab, setActiveTab] = useState<'market' | 'my' | 'sell'>('market');
+  const [activeTab, setActiveTab] = useState<'market' | 'my' | 'sell' | 'records'>('market');
   const [searchText, setSearchText] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [tradeRecords, setTradeRecords] = useState<TradeRecord[]>([]);
+  const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const showMessage = useCallback((text: string, type: 'success' | 'error' = 'success') => {
+    setMessage({ text, type });
+    setTimeout(() => setMessage(null), 3000);
+  }, []);
   
   useEffect(() => {
     if (showAuction && auctionOrders.length === 0) {
@@ -92,11 +101,51 @@ const AuctionPanel: React.FC = () => {
     return true;
   });
   
-  const handleBuy = (order: AuctionOrder) => {
-    if (currentPlayer && currentPlayer.gold >= order.price) {
-      alert(`成功购买 ${order.itemName} x${order.quantity}！`);
-    } else {
-      alert('金币不足！');
+  const loadTradeRecords = async () => {
+    try {
+      setLoading(true);
+      const records = await networkManager.getTradeRecords(50);
+      setTradeRecords(records);
+    } catch (err: any) {
+      showMessage(err.message || '加载失败', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleBuy = async (order: AuctionOrder) => {
+    try {
+      setLoading(true);
+      await networkManager.buyAuctionItem(order.id);
+      showMessage('购买成功!', 'success');
+      loadTradeRecords();
+    } catch (err: any) {
+      showMessage(err.message || '购买失败', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getRiskTagColor = (tag: TradeRiskTag): { label: string; color: string; bgColor: string } => {
+    switch (tag) {
+      case TradeRiskTag.NORMAL:
+        return { label: '正常', color: 'text-green-400', bgColor: 'bg-green-900/30' };
+      case TradeRiskTag.HIGH_PRICE:
+        return { label: '高价', color: 'text-red-400', bgColor: 'bg-red-900/30' };
+      case TradeRiskTag.LOW_PRICE:
+        return { label: '低价', color: 'text-yellow-400', bgColor: 'bg-yellow-900/30' };
+      case TradeRiskTag.MANUAL_REVIEW:
+        return { label: '待审核', color: 'text-orange-400', bgColor: 'bg-orange-900/30' };
+      case TradeRiskTag.STUDIO_SUSPECT:
+        return { label: '工作室嫌疑', color: 'text-red-500', bgColor: 'bg-red-900/40' };
+      case TradeRiskTag.FIRST_TRADE:
+        return { label: '首次交易', color: 'text-blue-400', bgColor: 'bg-blue-900/30' };
+      case TradeRiskTag.FREQUENT_TRADE:
+        return { label: '高频交易', color: 'text-purple-400', bgColor: 'bg-purple-900/30' };
+      case TradeRiskTag.HIGH_VALUE:
+        return { label: '高价值', color: 'text-amber-400', bgColor: 'bg-amber-900/30' };
+      default:
+        return { label: tag, color: 'text-gray-400', bgColor: 'bg-gray-700/50' };
     }
   };
   
@@ -125,16 +174,20 @@ const AuctionPanel: React.FC = () => {
           </button>
         </div>
         
-        <div className="flex gap-1 px-4 pt-2 border-b border-gray-700">
+        <div className="flex gap-1 px-4 pt-2 border-b border-gray-700 overflow-x-auto">
           {[
             { key: 'market', label: '市场' },
             { key: 'my', label: '我的上架' },
             { key: 'sell', label: '出售物品' },
+            { key: 'records', label: '交易记录' },
           ].map((tab) => (
             <button
               key={tab.key}
-              onClick={() => setActiveTab(tab.key as typeof activeTab)}
-              className={`px-4 py-2 text-sm rounded-t transition-colors ${
+              onClick={() => {
+                setActiveTab(tab.key as typeof activeTab);
+                if (tab.key === 'records') loadTradeRecords();
+              }}
+              className={`px-4 py-2 text-sm rounded-t transition-colors whitespace-nowrap ${
                 activeTab === tab.key
                   ? 'bg-amber-600 text-white'
                   : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
@@ -244,7 +297,80 @@ const AuctionPanel: React.FC = () => {
             </div>
           </div>
         )}
+
+        {activeTab === 'records' && (
+          <div className="flex-1 overflow-y-auto p-3">
+            {loading && (
+              <div className="flex items-center justify-center py-8">
+                <div className="w-6 h-6 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+              </div>
+            )}
+            {!loading && tradeRecords.length > 0 ? (
+              <div className="space-y-2">
+                {tradeRecords.map((record) => {
+                  const isBuyer = record.buyerId === currentPlayer?.id;
+                  return (
+                    <div
+                      key={record.id}
+                      className="bg-gray-800/50 rounded-lg p-3 border border-gray-700"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-gray-700 rounded-lg flex items-center justify-center text-xl">
+                          📦
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-white text-sm">{record.itemName}</span>
+                            <span className="text-xs text-gray-400">x{record.quantity}</span>
+                          </div>
+                          <div className="text-xs text-gray-400">
+                            {isBuyer ? '购买自' : '出售给'} {isBuyer ? record.sellerName : record.buyerName}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {new Date(record.timestamp).toLocaleString()}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className={`font-bold ${isBuyer ? 'text-red-400' : 'text-green-400'}`}>
+                            {isBuyer ? '-' : '+'}💰{record.totalAmount}
+                          </div>
+                          {record.riskTags && record.riskTags.length > 0 && (
+                            <div className="flex gap-1 justify-end mt-1 flex-wrap">
+                              {record.riskTags.slice(0, 2).map((tag, idx) => {
+                                const tagInfo = getRiskTagColor(tag);
+                                return (
+                                  <span
+                                    key={idx}
+                                    className={`text-xs px-1.5 py-0.5 rounded ${tagInfo.color} ${tagInfo.bgColor}`}
+                                  >
+                                    {tagInfo.label}
+                                  </span>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : !loading ? (
+              <div className="text-center text-gray-500 py-8">
+                暂无交易记录
+              </div>
+            ) : null}
+          </div>
+        )}
       </div>
+
+      {message && (
+        <div className={`absolute top-4 left-1/2 transform -translate-x-1/2 z-50 px-4 py-2 rounded-lg text-sm font-medium shadow-lg ${
+          message.type === 'success' ? 'bg-green-600 text-white' : 'bg-red-600 text-white'
+        }`}>
+          {message.text}
+        </div>
+      )}
     </div>
   );
 };

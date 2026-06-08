@@ -161,6 +161,7 @@ export interface AuctionOrder {
   price: number;
   expireTime: number;
   timestamp: number;
+  riskTags?: TradeRiskTag[];
 }
 
 export interface TeamData {
@@ -199,3 +200,250 @@ export type RankEntry = {
 };
 
 export type RankType = 'level' | 'combat' | 'wealth' | 'boss_damage';
+
+export enum BuildingType {
+  HOUSE = 'house',
+  DECORATION = 'decoration',
+  FARM = 'farm',
+  WORKSHOP = 'workshop',
+  STORAGE = 'storage',
+}
+
+export interface BuildingConfig {
+  id: number;
+  name: string;
+  type: BuildingType;
+  description: string;
+  icon: string;
+  unlockLevel: number;
+  buildTime: number;
+  materials: { itemId: number; quantity: number }[];
+  goldCost: number;
+  size: { width: number; height: number };
+  production?: {
+    itemId: number;
+    quantity: number;
+    interval: number;
+  };
+  storageBonus?: number;
+}
+
+export interface PlacedBuilding {
+  instanceId: string;
+  buildingId: number;
+  name: string;
+  icon: string;
+  position: { x: number; y: number };
+  level: number;
+  buildStartTime: number;
+  buildEndTime: number;
+  isBuilt: boolean;
+  remainingBuildTime: number;
+  lastCollectTime: number;
+  readyToCollect: number;
+}
+
+export interface PlotData {
+  id: number;
+  unlocked: boolean;
+  unlockCost: { gold?: number; itemId?: number; quantity?: number };
+  building: PlacedBuilding | null;
+  crop: CropData | null;
+}
+
+export interface CropData {
+  cropId: number;
+  plantTime: number;
+  growTime: number;
+  harvestTime: number;
+  isReady: boolean;
+  yield: number;
+  remainingGrowTime?: number;
+}
+
+export interface CropConfig {
+  id: number;
+  name: string;
+  icon: string;
+  growTime: number;
+  yield: number;
+  harvestItemId: number;
+  seedItemId: number;
+  yieldAmount?: number;
+  seedCost?: number;
+}
+
+export interface HomelandData {
+  id?: string;
+  ownerId: string;
+  ownerName: string;
+  level: number;
+  exp: number;
+  plots: PlotData[];
+  buildings: PlacedBuilding[];
+  crops: CropData[];
+  decorationSlots: { x: number; y: number; buildingId: number }[];
+  likes: number;
+  visitors: string[];
+  lastVisitTime: Record<string, number>;
+  totalVisits: number;
+}
+
+export type BuildingInstance = PlacedBuilding;
+
+export interface VisitRecord {
+  visitorId: string;
+  visitorName: string;
+  visitTime: number;
+  liked: boolean;
+}
+
+export enum VoiceChannelType {
+  TEAM = 'team',
+  PARTY = 'party',
+}
+
+export interface VoiceMember {
+  playerId: string;
+  playerName: string;
+  isMuted: boolean;
+  isDeafened: boolean;
+  isSpeaking: boolean;
+  isLeader: boolean;
+  joinTime: number;
+}
+
+export interface VoiceChannel {
+  id: string;
+  name: string;
+  type: VoiceChannelType;
+  ownerId: string;
+  members: VoiceMember[];
+  maxMembers: number;
+  createdAt: number;
+  allowAllSpeak: boolean;
+}
+
+export interface VoiceAuditLog {
+  id: string;
+  channelId: string;
+  playerId: string;
+  playerName: string;
+  action: 'join' | 'leave' | 'mute' | 'unmute' | 'speak_violation';
+  timestamp: number;
+  detail?: string;
+}
+
+export enum TradeRiskTag {
+  NORMAL = 'normal',
+  HIGH_PRICE = 'high_price',
+  LOW_PRICE = 'low_price',
+  EXTREME_PRICE = 'extreme_price',
+  FREQUENT_TRADE = 'frequent_trade',
+  STUDIO_SUSPECT = 'studio_suspect',
+  MANUAL_REVIEW = 'manual_review',
+  CROSS_SERVER = 'cross_server',
+  FIRST_TRADE = 'first_trade',
+  HIGH_VALUE = 'high_value',
+}
+
+export interface TradeLimitConfig {
+  itemDailyLimit: number;
+  itemDailyBuyLimit: number;
+  itemDailySellLimit: number;
+  accountDailyOrderLimit: number;
+  accountDailyBuyLimit: number;
+  accountDailySellLimit: number;
+  accountDailyTradeAmount: number;
+  priceDeviationThreshold: number;
+  priceDeviationSoftThreshold: number;
+  priceDeviationHardThreshold: number;
+  studioBehaviorThreshold: {
+    dailyTradeCount: number;
+    averageTradeSize: number;
+    loginFrequency: number;
+    abnormalTradeRate: number;
+    goldAccumulationRate: number;
+  };
+}
+
+export interface PlayerTradeStats {
+  playerId: string;
+  dailyOrderCount: number;
+  dailyTradeAmount: number;
+  itemDailyCounts: Record<number, number>;
+  lastResetDate: string;
+  totalTrades: number;
+  riskScore: number;
+  isStudioSuspect: boolean;
+}
+
+export interface TradeRecord {
+  id: string;
+  orderId: string;
+  sellerId: string;
+  sellerName: string;
+  buyerId: string;
+  buyerName: string;
+  itemId: number;
+  itemName: string;
+  quantity: number;
+  price: number;
+  totalAmount: number;
+  timestamp: number;
+  riskTags: TradeRiskTag[];
+  historicalAveragePrice: number;
+  priceDeviationPercent: number;
+}
+
+export interface PriceHistory {
+  itemId: number;
+  averagePrice: number;
+  minPrice: number;
+  maxPrice: number;
+  sampleCount: number;
+  lastUpdated: number;
+  dailyPrices: { date: string; avgPrice: number }[];
+}
+
+export interface TeleportPoint {
+  id: string;
+  name: string;
+  description: string;
+  position: Vector3;
+  icon: string;
+  unlocked: boolean;
+  unlockLevel?: number;
+  unlockCost?: { gold?: number };
+  isActive: boolean;
+  category: 'city' | 'dungeon' | 'wild' | 'homeland';
+}
+
+export enum FeatureType {
+  HOMELAND = 'homeland',
+  VOICE = 'voice',
+  AUCTION = 'auction',
+  TEAM = 'team',
+  ACTIVITIES = 'activities',
+}
+
+export interface FeatureConfig {
+  type: FeatureType;
+  enabled: boolean;
+  maintenanceMode: boolean;
+  maintenanceMessage?: string;
+  grayScalePercent?: number;
+}
+
+export type FeatureState = Record<FeatureType, FeatureConfig>;
+
+export type GraphicsQuality = 'low' | 'medium' | 'high';
+
+export interface PlayerSettings {
+  graphicsQuality: GraphicsQuality;
+  sameScreenPlayerLimit: number;
+  voiceEnabled: boolean;
+  voiceVolume: number;
+  musicVolume: number;
+  soundVolume: number;
+}

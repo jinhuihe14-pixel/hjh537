@@ -1,5 +1,17 @@
 
-import { ItemData, ItemType, ItemRarity, SkillData, PlayerClass } from '../types/game';
+import {
+  ItemData,
+  ItemType,
+  ItemRarity,
+  SkillData,
+  PlayerClass,
+  BuildingConfig,
+  BuildingType,
+  TeleportPoint,
+  TradeLimitConfig,
+  FeatureType,
+  FeatureState,
+} from '../types/game';
 
 export const ITEMS: Record<number, ItemData> = {
   1001: {
@@ -363,3 +375,321 @@ export const CLASS_INFO: Record<PlayerClass, { name: string; description: string
     icon: '✨',
   },
 };
+
+export const BUILDINGS: Record<number, BuildingConfig> = {
+  5001: {
+    id: 5001,
+    name: '小木屋',
+    type: BuildingType.HOUSE,
+    description: '温馨的小木屋，是家园的核心建筑。',
+    icon: '🏠',
+    unlockLevel: 1,
+    buildTime: 60,
+    materials: [{ itemId: 4001, quantity: 10 }],
+    goldCost: 500,
+    size: { width: 2, height: 2 },
+    storageBonus: 10,
+  },
+  5002: {
+    id: 5002,
+    name: '石制别墅',
+    type: BuildingType.HOUSE,
+    description: '坚固的石制别墅，提供更多存储空间。',
+    icon: '🏡',
+    unlockLevel: 10,
+    buildTime: 300,
+    materials: [
+      { itemId: 4001, quantity: 50 },
+      { itemId: 4003, quantity: 5 },
+    ],
+    goldCost: 5000,
+    size: { width: 3, height: 3 },
+    storageBonus: 30,
+  },
+  5101: {
+    id: 5101,
+    name: '药草园',
+    type: BuildingType.FARM,
+    description: '种植药草的园地，定期产出草药。',
+    icon: '🌱',
+    unlockLevel: 2,
+    buildTime: 120,
+    materials: [{ itemId: 4002, quantity: 5 }],
+    goldCost: 300,
+    size: { width: 2, height: 2 },
+    production: {
+      itemId: 4002,
+      quantity: 2,
+      interval: 300,
+    },
+  },
+  5102: {
+    id: 5102,
+    name: '矿场',
+    type: BuildingType.FARM,
+    description: '小型矿场，定期产出铁矿石。',
+    icon: '⛏️',
+    unlockLevel: 5,
+    buildTime: 180,
+    materials: [{ itemId: 4001, quantity: 20 }],
+    goldCost: 800,
+    size: { width: 2, height: 2 },
+    production: {
+      itemId: 4001,
+      quantity: 3,
+      interval: 600,
+    },
+  },
+  5103: {
+    id: 5103,
+    name: '魔晶塔',
+    type: BuildingType.FARM,
+    description: '神秘的魔晶塔，缓慢产出珍贵魔晶。',
+    icon: '💎',
+    unlockLevel: 20,
+    buildTime: 600,
+    materials: [
+      { itemId: 4003, quantity: 10 },
+      { itemId: 4001, quantity: 100 },
+    ],
+    goldCost: 10000,
+    size: { width: 2, height: 3 },
+    production: {
+      itemId: 4003,
+      quantity: 1,
+      interval: 1800,
+    },
+  },
+  5201: {
+    id: 5201,
+    name: '锻造坊',
+    type: BuildingType.WORKSHOP,
+    description: '可以锻造装备的工作坊。',
+    icon: '🔨',
+    unlockLevel: 8,
+    buildTime: 240,
+    materials: [
+      { itemId: 4001, quantity: 30 },
+      { itemId: 4002, quantity: 10 },
+    ],
+    goldCost: 2000,
+    size: { width: 2, height: 2 },
+  },
+  5202: {
+    id: 5202,
+    name: '炼金室',
+    type: BuildingType.WORKSHOP,
+    description: '炼制药剂的神秘工坊。',
+    icon: '⚗️',
+    unlockLevel: 12,
+    buildTime: 300,
+    materials: [
+      { itemId: 4002, quantity: 30 },
+      { itemId: 4003, quantity: 3 },
+    ],
+    goldCost: 3000,
+    size: { width: 2, height: 2 },
+  },
+  5301: {
+    id: 5301,
+    name: '仓库',
+    type: BuildingType.STORAGE,
+    description: '扩大背包存储容量。',
+    icon: '📦',
+    unlockLevel: 3,
+    buildTime: 90,
+    materials: [{ itemId: 4001, quantity: 15 }],
+    goldCost: 600,
+    size: { width: 2, height: 1 },
+    storageBonus: 20,
+  },
+  5401: {
+    id: 5401,
+    name: '花园雕像',
+    type: BuildingType.DECORATION,
+    description: '精美的花园装饰，提升家园美观度。',
+    icon: '🗿',
+    unlockLevel: 1,
+    buildTime: 30,
+    materials: [{ itemId: 4001, quantity: 5 }],
+    goldCost: 200,
+    size: { width: 1, height: 1 },
+  },
+  5402: {
+    id: 5402,
+    name: '喷泉',
+    type: BuildingType.DECORATION,
+    description: '优雅的喷泉装饰。',
+    icon: '⛲',
+    unlockLevel: 15,
+    buildTime: 200,
+    materials: [
+      { itemId: 4001, quantity: 40 },
+      { itemId: 4003, quantity: 2 },
+    ],
+    goldCost: 3000,
+    size: { width: 2, height: 2 },
+  },
+};
+
+export const CROPS: Record<number, {
+  id: number;
+  name: string;
+  icon: string;
+  growTime: number;
+  yield: number;
+  harvestItemId: number;
+  seedItemId: number;
+}> = {
+  6001: {
+    id: 6001,
+    name: '草药种子',
+    icon: '🌿',
+    growTime: 120,
+    yield: 3,
+    harvestItemId: 4002,
+    seedItemId: 4002,
+  },
+  6002: {
+    id: 6002,
+    name: '铁矿脉',
+    icon: '🪨',
+    growTime: 300,
+    yield: 5,
+    harvestItemId: 4001,
+    seedItemId: 4001,
+  },
+};
+
+export const TELEPORT_POINTS: TeleportPoint[] = [
+  {
+    id: 'tp_main_city',
+    name: '圣光主城',
+    description: '联盟的中心城市，繁华而安全。',
+    position: { x: 32, y: 0, z: 32 },
+    icon: '🏰',
+    unlocked: true,
+    isActive: true,
+    category: 'city',
+  },
+  {
+    id: 'tp_forest',
+    name: '幽暗森林',
+    description: '充满神秘气息的古老森林。',
+    position: { x: 80, y: 0, z: 50 },
+    icon: '🌲',
+    unlocked: false,
+    unlockLevel: 10,
+    isActive: true,
+    category: 'wild',
+  },
+  {
+    id: 'tp_desert',
+    name: '沙漠绿洲',
+    description: '沙漠中的一片绿洲，藏有宝藏。',
+    position: { x: 120, y: 0, z: 80 },
+    icon: '🏜️',
+    unlocked: false,
+    unlockLevel: 20,
+    unlockCost: { gold: 1000 },
+    isActive: true,
+    category: 'wild',
+  },
+  {
+    id: 'tp_dungeon_1',
+    name: '暗影副本',
+    description: '充满危险的地下城，挑战与机遇并存。',
+    position: { x: -50, y: 0, z: 60 },
+    icon: '🕳️',
+    unlocked: false,
+    unlockLevel: 15,
+    isActive: true,
+    category: 'dungeon',
+  },
+  {
+    id: 'tp_dungeon_2',
+    name: '炎魔巢穴',
+    description: '传说中炎魔领主的巢穴。',
+    position: { x: 100, y: 0, z: 100 },
+    icon: '🔥',
+    unlocked: false,
+    unlockLevel: 40,
+    unlockCost: { gold: 5000 },
+    isActive: true,
+    category: 'dungeon',
+  },
+  {
+    id: 'tp_homeland',
+    name: '我的家园',
+    description: '返回你的专属家园领地。',
+    position: { x: 0, y: 0, z: 0 },
+    icon: '🏡',
+    unlocked: true,
+    isActive: true,
+    category: 'homeland',
+  },
+];
+
+export const TRADE_LIMIT_CONFIG: TradeLimitConfig = {
+  itemDailyLimit: 100,
+  itemDailyBuyLimit: 50,
+  itemDailySellLimit: 50,
+  accountDailyOrderLimit: 50,
+  accountDailyBuyLimit: 30,
+  accountDailySellLimit: 30,
+  accountDailyTradeAmount: 100000,
+  priceDeviationThreshold: 0.5,
+  priceDeviationSoftThreshold: 0.5,
+  priceDeviationHardThreshold: 1.0,
+  studioBehaviorThreshold: {
+    dailyTradeCount: 30,
+    averageTradeSize: 5000,
+    loginFrequency: 20,
+    abnormalTradeRate: 0.3,
+    goldAccumulationRate: 0.8,
+  },
+};
+
+export const DEFAULT_FEATURE_STATE: FeatureState = {
+  [FeatureType.HOMELAND]: {
+    type: FeatureType.HOMELAND,
+    enabled: true,
+    maintenanceMode: false,
+    grayScalePercent: 100,
+  },
+  [FeatureType.VOICE]: {
+    type: FeatureType.VOICE,
+    enabled: true,
+    maintenanceMode: false,
+    grayScalePercent: 100,
+  },
+  [FeatureType.AUCTION]: {
+    type: FeatureType.AUCTION,
+    enabled: true,
+    maintenanceMode: false,
+    grayScalePercent: 100,
+  },
+  [FeatureType.TEAM]: {
+    type: FeatureType.TEAM,
+    enabled: true,
+    maintenanceMode: false,
+    grayScalePercent: 100,
+  },
+  [FeatureType.ACTIVITIES]: {
+    type: FeatureType.ACTIVITIES,
+    enabled: true,
+    maintenanceMode: false,
+    grayScalePercent: 100,
+  },
+};
+
+export const VOICE_KEYWORDS_FILTER: string[] = [
+  '外挂',
+  '代练',
+  '刷金',
+  '赌博',
+  '诈骗',
+  '色情',
+  '暴力',
+  '反动',
+];

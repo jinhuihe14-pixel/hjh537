@@ -10,6 +10,19 @@ import {
   RankEntry,
   RankType,
   ItemSlot,
+  HomelandData,
+  BuildingConfig,
+  VoiceChannel,
+  TeleportPoint,
+  FeatureState,
+  VisitRecord,
+  PlayerTradeStats,
+  PriceHistory,
+  TradeLimitConfig,
+  TradeRecord,
+  CropConfig,
+  VoiceAuditLog,
+  BuildingInstance,
 } from '../../types/game';
 import { useGameStore } from '../../store/useGameStore';
 
@@ -248,6 +261,146 @@ class NetworkManager {
   
   async getRank(type: RankType): Promise<RankEntry[]> {
     return this.send('rank_get', { type });
+  }
+  
+  async getFeatureState(): Promise<FeatureState> {
+    return this.send('feature_state');
+  }
+  
+  async getTeleportList(): Promise<TeleportPoint[]> {
+    return this.send('teleport_list');
+  }
+  
+  async unlockTeleportPoint(pointId: string): Promise<void> {
+    return this.send('teleport_unlock', { pointId });
+  }
+  
+  async teleportTo(pointId: string): Promise<void> {
+    return this.send('teleport_to', { pointId });
+  }
+  
+  async getHomeland(): Promise<HomelandData> {
+    return this.send('homeland_get');
+  }
+  
+  async getBuildingConfigs(): Promise<BuildingConfig[]> {
+    return this.send('homeland_building_configs');
+  }
+  
+  async unlockPlot(plotId: string): Promise<void> {
+    return this.send('homeland_unlock_plot', { plotId });
+  }
+  
+  async buildBuilding(plotId: string, buildingId: string): Promise<void> {
+    return this.send('homeland_build', { plotId, buildingId });
+  }
+  
+  async collectProduction(plotId: string): Promise<void> {
+    return this.send('homeland_collect', { plotId });
+  }
+  
+  async collectAllProduction(): Promise<void> {
+    return this.send('homeland_collect_all');
+  }
+  
+  async visitHomeland(playerId: string): Promise<HomelandData> {
+    return this.send('homeland_visit', { playerId });
+  }
+  
+  async likeHomeland(homelandId: string): Promise<void> {
+    return this.send('homeland_like', { homelandId });
+  }
+  
+  async getVisitRecords(): Promise<VisitRecord[]> {
+    return this.send('homeland_visit_records');
+  }
+  
+  async joinTeamVoice(): Promise<VoiceChannel> {
+    return this.send('voice_join_team');
+  }
+  
+  async leaveVoice(): Promise<void> {
+    return this.send('voice_leave');
+  }
+  
+  async setVoiceMute(muted: boolean): Promise<void> {
+    return this.send('voice_mute', { muted });
+  }
+  
+  async setVoiceSpeaking(speaking: boolean): Promise<void> {
+    return this.send('voice_speaking', { speaking });
+  }
+  
+  async setAllowAllSpeak(allow: boolean): Promise<void> {
+    return this.send('voice_set_allow_all_speak', { allow });
+  }
+  
+  async getPriceHistory(itemId: number): Promise<PriceHistory> {
+    return this.send('auction_price_history', { itemId });
+  }
+  
+  async getTradeStats(): Promise<PlayerTradeStats> {
+    return this.send('auction_trade_stats');
+  }
+  
+  async getTradeLimitConfig(): Promise<TradeLimitConfig> {
+    return this.send('auction_limit_config');
+  }
+
+  async getTradeRecords(limit?: number): Promise<TradeRecord[]> {
+    return this.send('auction_trade_records', { limit });
+  }
+
+  async getCropConfigs(): Promise<CropConfig[]> {
+    return this.send('homeland_crop_configs');
+  }
+
+  async plantCrop(plotId: string, cropId: number): Promise<void> {
+    return this.send('homeland_plant', { plotId, cropId });
+  }
+
+  async harvestCrop(plotId: string): Promise<any> {
+    return this.send('homeland_harvest', { plotId });
+  }
+
+  async removeBuilding(plotId: string): Promise<any> {
+    return this.send('homeland_remove_building', { plotId });
+  }
+
+  async getHomelandRanking(type?: string, limit?: number): Promise<any> {
+    return this.send('homeland_ranking', { type, limit });
+  }
+
+  async getHomelandConfigVersion(): Promise<{ version: number; lastUpdate: number }> {
+    return this.send('homeland_config_version');
+  }
+
+  async getInventory(): Promise<{ inventory: ItemSlot[]; inventorySize: number }> {
+    return this.send('inventory_get');
+  }
+
+  sendVoiceSignal(targetPlayerId: string, signalType: string, signalData: any): void {
+    if (this.socket && this.isConnected) {
+      this.socket.emit('voice_signal', { targetPlayerId, signalType, signalData });
+    }
+  }
+
+  async setVoiceQuality(quality: string): Promise<{ bitrate: number; sampleRate: number }> {
+    return this.send('voice_quality', { quality });
+  }
+
+  async reportVoiceViolation(targetPlayerId: string, detail: string, severity?: string): Promise<any> {
+    return this.send('voice_violation_report', { targetPlayerId, detail, severity });
+  }
+
+  async getVoiceAuditLogs(limit?: number): Promise<VoiceAuditLog[]> {
+    return this.send('voice_audit_logs', { limit });
+  }
+
+  sendVoiceNetworkStats(stats: { packetLossRate: number; jitter: number; roundTripTime: number }): void {
+    if (this.socket && this.isConnected) {
+      this.socket.emit('voice_network_stats', stats);
+    }
   }
   
   get isConnectedToServer(): boolean {
