@@ -23,7 +23,24 @@ const GameScene: React.FC<GameSceneProps> = ({ onLoaded }) => {
   const clockRef = useRef<THREE.Clock>(new THREE.Clock());
   const [isReady, setIsReady] = useState(false);
   
-  const { setCurrentPlayer, setInGame, setLoadingProgress, otherPlayers, playerId, currentPlayer } = useGameStore();
+  const {
+    setCurrentPlayer,
+    setInGame,
+    setLoadingProgress,
+    otherPlayers,
+    playerId,
+    currentPlayer,
+    showInventory,
+    showCharacter,
+    showAuction,
+    showTeam,
+    showActivities,
+    showSettings,
+    showHomeland,
+    showVoice,
+    showTeleport,
+    showHomelandVisit,
+  } = useGameStore();
   
   useEffect(() => {
     if (!containerRef.current) return;
@@ -179,6 +196,35 @@ const GameScene: React.FC<GameSceneProps> = ({ onLoaded }) => {
       }
     }
   }, [otherPlayers]);
+  
+  useEffect(() => {
+    if (!playerControllerRef.current) return;
+    
+    const anyPanelOpen =
+      showInventory ||
+      showCharacter ||
+      showAuction ||
+      showTeam ||
+      showActivities ||
+      showSettings ||
+      showHomeland ||
+      showVoice ||
+      showTeleport ||
+      showHomelandVisit;
+    
+    playerControllerRef.current.setPointerLockEnabled(!anyPanelOpen);
+  }, [
+    showInventory,
+    showCharacter,
+    showAuction,
+    showTeam,
+    showActivities,
+    showSettings,
+    showHomeland,
+    showVoice,
+    showTeleport,
+    showHomelandVisit,
+  ]);
   
   useEffect(() => {
     if (!playerControllerRef.current || !currentPlayer) return;

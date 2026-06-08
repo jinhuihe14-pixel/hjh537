@@ -25,6 +25,8 @@ export class PlayerController {
   
   private onMoveCallback?: (position: Vector3, rotation: Vector3, animation: string) => void;
   
+  private pointerLockEnabled: boolean = true;
+  
   constructor(worldManager: WorldManager, startPosition: Vector3 = { x: 0, y: 10, z: 0 }) {
     this.worldManager = worldManager;
     this.targetPosition = { ...startPosition };
@@ -103,12 +105,28 @@ export class PlayerController {
       }
     });
     
-    document.addEventListener('click', () => {
+    document.addEventListener('click', (e) => {
       const canvas = document.querySelector('canvas');
-      if (canvas && !document.pointerLockElement) {
+      if (
+        canvas &&
+        e.target === canvas &&
+        !document.pointerLockElement &&
+        this.pointerLockEnabled
+      ) {
         canvas.requestPointerLock?.();
       }
     });
+  }
+  
+  setPointerLockEnabled(enabled: boolean): void {
+    this.pointerLockEnabled = enabled;
+    if (!enabled && document.pointerLockElement) {
+      document.exitPointerLock?.();
+    }
+  }
+  
+  isPointerLockEnabled(): boolean {
+    return this.pointerLockEnabled;
   }
   
   update(deltaTime: number, camera: THREE.PerspectiveCamera): void {
